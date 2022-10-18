@@ -25,7 +25,7 @@ class Activity:
     transportation_mode: str
     start_date_time: datetime
     end_date_time: datetime
-    trackpoints: list  # list with _id of trackpoints
+    # trackpoints: list  # list with _id of trackpoints
 
 
 @dataclass
@@ -34,4 +34,4 @@ class User:
 
     _id: str
     has_label: bool
-    # activities: dict  # List of activities with transportation_mode
+    activities: dict  # List of activities with transportation_mode
