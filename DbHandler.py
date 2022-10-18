@@ -46,6 +46,20 @@ class DbHandler:
         results = collection.insert_many(docs)
         return results.inserted_ids
 
+    def update_document(self, collection_name, document_id, data):
+        """Update a document in a collection
+        Example of data = {
+            "trackpoint": [ObjectID(...), ObjectID(...), ...]
+        }
+
+        Args:
+            collection_name (str): name of the collection
+            document_id (ObjectID): id of the document
+            data (dict): data to update
+        """
+        collection = self.db[collection_name]
+        collection.update_one({"_id": document_id}, {"$set": data}, upsert=False)
+
     def fetch_documents(self, collection_name) -> list:
         """Fetch all documents in a collection from the database
 
@@ -67,10 +81,16 @@ class DbHandler:
         collection = self.db[collection_name]
         collection.drop()
 
-    def show_coll(self) -> list:
+    def drop_all_coll(self):
+        """Remove all collections in the db"""
+        coll = self.db.list_collection_names()
+        for c in coll:
+            self.db.drop_collection(c)
+
+    def get_coll(self) -> list:
         """Returns all the collections
 
         Returns:
-            list: All collections for a db
+            list: All collections for the db
         """
-        return self.client["test"].list_collection_names()
+        return self.db.list_collection_names()
