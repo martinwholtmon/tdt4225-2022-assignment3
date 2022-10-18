@@ -1,4 +1,136 @@
+import os
+import time
 from DbHandler import DbHandler
+from datetime import datetime
+from FileHandler import read_data_file, read_labeled_users_file, read_user_labels_file
+from structs import User, Activity, TrackPoint
+
+
+def parse_and_insert_dataset(db: DbHandler, stop_at_user=""):
+    """Will parse the dataset and insert the users,
+    the activities and all the trackpoints for each activity.
+
+    Args:
+        program (DbHandler): the database
+    """
+    path_to_dataset = os.path.join("./dataset")
+
+    labeled_ids = read_labeled_users_file(
+        os.path.join(path_to_dataset, "labeled_ids.txt")
+    )
+    user = ""
+    labels = {}
+    has_labels = False
+    for root, dirs, files in os.walk(os.path.join(path_to_dataset, "Data")):
+        # New user?
+        # Directory has a "Trajectory" folder,
+        # meaning we are in a new users directory
+        if len(dirs) > 0 and dirs[0] == "Trajectory":
+            user = os.path.normpath(root).split(os.path.sep)[-1]
+
+            # Partial insert, 0..stop_at_user-1
+            if user == stop_at_user:
+                return
+
+            # Get labels
+            if user in labeled_ids and files[0] == "labels.txt":
+                labels = read_user_labels_file(os.path.join(root, files[0]))
+                has_labels = True
+            else:
+                has_labels = False
+
+            # insert user into db
+            print(f"Inserting user {user}")
+            db.insert_documents("User", [User(user, has_labels).__dict__])
+
+        # Insert activities with Trajectory data
+        # In "Trajectory" directory
+        if os.path.normpath(root).split(os.path.sep)[-1] == "Trajectory":
+            for file in files:
+                insert_trajectory(
+                    db,
+                    user,
+                    root,
+                    file,
+                    has_labels,
+                    labels,
+                )
+
+
+def insert_trajectory(db: DbHandler, user, root, file, has_labels, labels):
+    path = os.path.join(root, file)
+    data = read_data_file(path)[6:]
+
+    # Check file size
+    if len(data) > 2500:
+        return
+
+    # Insert Activity
+    activity, activity_id = insert_activity(db, user, file, data, has_labels, labels)
+    if len(activity_id) == 0:
+        raise ValueError(f"Activity {path} was not inserted!")
+    else:
+        activity_id = activity_id[0]
+
+    # Prepare Trackpoints
+    trackpoints = []
+    for trackpoint in data:
+        lat = trackpoint[0]
+        lon = trackpoint[1]
+        altitude = int(round(float(trackpoint[3])))
+        date_days = trackpoint[4]
+        date_time = get_datetime_format(trackpoint[5], trackpoint[6])
+
+        # Append trackpoint
+        trackpoints.append(
+            TrackPoint(activity_id, lat, lon, altitude, date_days, date_time).__dict__
+        )
+
+    # Insert Trackpoints
+    trackpoint_ids = db.insert_documents("TrackPoint", trackpoints)
+
+    # Update activity with trackpoint references
+    data_to_update = {"trackpoints": trackpoint_ids}
+    db.update_document("Activity", activity_id, data_to_update)
+
+
+def insert_activity(db: DbHandler, user, file, data, has_labels, labels):
+    # Prepare activity
+    start_date_time = get_datetime_format(data[0][5], data[0][6])
+    end_date_time = get_datetime_format(data[-1][5], data[-1][6])
+
+    # Match Transportation mode
+    transportation_mode = None
+    if has_labels:
+        # Get activity from dict
+        activity = labels.get(os.path.splitext(file)[0])  # Match start time on filename
+        if activity is not None:
+            # Match end time
+            if get_datetime_format(activity[2], activity[3]) == end_date_time:
+                transportation_mode = activity[4]
+
+    # Insert
+    activity = Activity(user, transportation_mode, start_date_time, end_date_time, [])
+
+    ids = db.insert_documents("Activity", [activity.__dict__])
+    return activity, ids
+
+
+def get_datetime_format(date, time) -> datetime:
+    """Convert the date and time to datetime format
+
+    Args:
+        date (str): the date
+        time (str): time
+
+    Returns:
+        datetime: the date and time
+    """
+    return datetime.strptime(
+        str(date).replace("/", "-") + " " + str(time), "%Y-%m-%d %H:%M:%S"
+    )
+
+
 def main():
     db = None
     try:
@@ -12,6 +144,17 @@ def main():
         db.create_coll("Activity")
         db.create_coll("TrackPoint")
         print(db.get_coll())  # Print collections
+
+        # Insert data
+        start = time.time()
+        parse_and_insert_dataset(db)
+        end = time.time()
+        print(f"Time used: {end - start}")
+
+        # Fetch documents
+        # print(db.fetch_documents("User"))
+        # print(db.fetch_documents("Activity"))
+        # print(db.fetch_documents("TrackPoint"))
 
     except Exception as e:
         print("ERROR: Failed to use database:", e)
