@@ -1,4 +1,6 @@
+from dataclasses import field
 import pandas as pd
+import pprint as pp
 from tabulate import tabulate
 from DbHandler import DbHandler
 
@@ -28,12 +30,35 @@ def task_2(db: DbHandler):
 
 def task_3(db: DbHandler):
     """Find the top 20 users with the highest number of activities."""
-    return NotImplementedError
+    pipeline = []
+
+    # Get user with nr_activities
+    pipeline.append({"$project": {"_id": 1, "nr_activities": {"$size": "$activities"}}})
+
+    # Sort
+    pipeline.append({"$sort": {"nr_activities": -1}})
+
+    # Get top 20
+    pipeline.append({"$limit": 20})
+
+    # Query
+    ret = db.aggregate("User", pipeline)
+
+    # Print
+    print("\nTask 3")
+    pp.pprint(list(ret))
 
 
 def task_4(db: DbHandler):
     """Find all users who have taken a taxi."""
-    return NotImplementedError
+    collection = "User"
+    query = {"activities.transportation_mode": "taxi"}
+    fields = {"_id": 1}
+    ret = db.find(collection, query, fields)
+
+    # Print
+    print("\nTask 4")
+    pp.pprint(list(ret))
 
 
 def task_5(db: DbHandler):
@@ -101,10 +126,10 @@ def main():
         db = DbHandler()
 
         # Execute the tasks:
-        task_1(db)
-        task_2(db)
-        task_3(db)
-        task_4(db)
+        # task_1(db)
+        # task_2(db)
+        # task_3(db)
+        # task_4(db)
         task_5(db)
         task_6(db)
         task_7(db)

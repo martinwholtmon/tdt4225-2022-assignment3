@@ -76,6 +76,14 @@ class DbHandler:
         collection = self.db[collection_name]
         return int(collection.count_documents({}))
 
+    def find(self, collection_name, query, fields={}):
+        collection = self.db[collection_name]
+        return collection.find(query, fields)
+
+    def aggregate(self, collection_name, pipeline):
+        collection = self.db[collection_name]
+        return collection.aggregate(pipeline)
+
     def drop_coll(self, collection_name):
         """Remove a collection from the database
 
