@@ -49,7 +49,7 @@ class DbHandler:
     def update_document(self, collection_name, document_id, data):
         """Update a document in a collection
         Example of data = {
-            "trackpoint": [ObjectID(...), ObjectID(...), ...]
+            "field_name_to_update": new_value]
         }
 
         Args:
@@ -73,14 +73,46 @@ class DbHandler:
         return list(collection.find({}))
 
     def get_nr_documents(self, collection_name) -> int:
+        """Get number of documents in a collection
+
+        Args:
+            collection_name (str): Name of a collection
+
+        Returns:
+            int: number of documents for a given collection
+        """
         collection = self.db[collection_name]
         return int(collection.count_documents({}))
 
-    def find(self, collection_name, query, fields={}):
+    def find_documents(self, collection_name, query, fields={}):
+        """find documents in a given collection provided queries.
+        You can spesificy which fields you would like in return as well.
+
+        Exmaple of
+        - query = {"activities.transportation_mode": "taxi"}
+        - fields = {"_id": 1}
+
+        Args:
+            collection_name (_type_): _description_
+            query (_type_): _description_
+            fields (dict, optional): _description_. Defaults to {}.
+
+        Returns:
+            _type_: _description_
+        """
         collection = self.db[collection_name]
         return collection.find(query, fields)
 
-    def aggregate(self, collection_name, pipeline):
+    def aggregate(self, collection_name, pipeline: list):
+        """Perform aggregation, and return computed results. Each stage is provided in the pipeline list
+
+        Args:
+            collection_name (str): Name of the collection
+            pipeline (list): Stages in the aggregation
+
+        Returns:
+            ~pymongo.command_cursor.CommandCursor: The results of the aggregation. list(ret) to print the results.
+        """
         collection = self.db[collection_name]
         return collection.aggregate(pipeline)
 

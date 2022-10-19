@@ -1,4 +1,3 @@
-from dataclasses import field
 import pandas as pd
 import pprint as pp
 from tabulate import tabulate
@@ -54,7 +53,7 @@ def task_4(db: DbHandler):
     collection = "User"
     query = {"activities.transportation_mode": "taxi"}
     fields = {"_id": 1}
-    ret = db.find(collection, query, fields)
+    ret = db.find_documents(collection, query, fields)
 
     # Print
     print("\nTask 4")
