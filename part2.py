@@ -65,7 +65,20 @@ def task_5(db: DbHandler):
     """Find all types of transportation modes and count how many activities that are tagged with these transportation mode labels.
     Do not count the rows where the mode is null.
     """
-    return NotImplementedError
+    pipeline = []
+
+    # Remove null
+    pipeline.append({"$match": {"transportation_mode": {"$exists": True, "$ne": None}}})
+
+    # Group by transportation mode and count instances
+    pipeline.append({"$group": {"_id": "$transportation_mode", "count": {"$sum": 1}}})
+
+    # Query
+    ret = db.aggregate("Activity", pipeline)
+
+    # Print
+    print("\nTask 5")
+    pp.pprint(list(ret))
 
 
 def task_6(db: DbHandler):
@@ -73,7 +86,60 @@ def task_6(db: DbHandler):
     a) Find the year with the most activities.
     b) Is this also the year with most recorded hours?
     """
-    return NotImplementedError
+    # Get year with most activities
+    pipeline = []
+
+    # Convert start_date_time to year
+    pipeline.append({"$project": {"_id": 1, "year": {"$year": "$start_date_time"}}})
+    pipeline.append({"$group": {"_id": "$year", "count": {"$sum": 1}}})  # Group by year
+    pipeline.append({"$sort": {"count": -1}})  # Sort
+    pipeline.append({"$limit": 1})  # Get top 1
+
+    # Query
+    ret = db.aggregate("Activity", pipeline)
+    most_activities_year = list(ret)[0]["_id"]
+
+    # Get year with most recorded hours
+    pipeline = []
+    pipeline.append(
+        {
+            "$project": {
+                "_id": 0,
+                "year": {"$year": "$start_date_time"},
+                "start_date_time": 1,
+                "end_date_time": 1,
+            }
+        }
+    )
+    # Query
+    ret = db.aggregate("Activity", pipeline)
+
+    # Calculate
+    recorded_hours = {}
+    for tp in ret:
+        year = tp["year"]
+        start = tp["start_date_time"]
+        finish = tp["end_date_time"]
+
+        # Update
+        recorded_hours[year] = (
+            recorded_hours[year] + (finish - start)
+            if recorded_hours.get(year) is not None  # Update if exist in dict
+            else (finish - start)  # First time? Insert value
+        )
+
+    # Convert to hours
+    # source: https://stackoverflow.com/a/47207182
+    for key, val in recorded_hours.items():
+        recorded_hours[key] = divmod(val.seconds, 3600)[0]
+
+    # Most hours
+    most_recorded_hours_year = max(recorded_hours, key=recorded_hours.get)
+
+    # Print
+    print("\nTask 6")
+    print(f"Year with most activities: {most_activities_year}")
+    print(f"Year with most recorded hours: {most_recorded_hours_year}")
 
 
 def task_7(db: DbHandler):
@@ -130,8 +196,8 @@ def main():
         # task_2(db)
         # task_3(db)
         # task_4(db)
-        task_5(db)
-        task_6(db)
+        # task_5(db)
+        # task_6(db)
         task_7(db)
         task_8(db)
         task_9(db)
