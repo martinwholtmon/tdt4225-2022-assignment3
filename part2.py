@@ -1,14 +1,29 @@
+import pandas as pd
+from tabulate import tabulate
 from DbHandler import DbHandler
 
 
 def task_1(db: DbHandler):
-    """Find out the total amount of rows in table: User, Activity and Activity"""
-    return NotImplementedError
+    """Find out the total amount of docs in collection: User, Activity and TrackPoint"""
+    tables = {}
+    tables["User"] = db.get_nr_documents("User")
+    tables["Activity"] = db.get_nr_documents("Activity")
+    tables["TrackPoint"] = db.get_nr_documents("TrackPoint")
+
+    # Print
+    print("\nTask 1")
+    print(
+        f"Total amount of rows in tables: \n{tabulate_dict(tables, ['Table', 'Rows'])}"
+    )
 
 
 def task_2(db: DbHandler):
     """Find the average number of activities per user (including users with 0 activities)"""
-    return NotImplementedError
+    average = db.get_nr_documents("Activity") / db.get_nr_documents("User")
+
+    # Print
+    print("\nTask 2")
+    print(f"Average number of activities per user is {average}")
 
 
 def task_3(db: DbHandler):
@@ -64,6 +79,20 @@ def task_10(db: DbHandler):
 def task_11(db: DbHandler):
     """Find all users who have registered transportation_mode and their most used transportation_mode."""
     return NotImplementedError
+
+
+def tabulate_dict(data, headers) -> str:
+    """Will tabulate a dict that has the format of key:value
+
+    Args:
+        dict (dict): a key:value pair store
+        headers (list): list of the header names
+
+    Returns:
+        str: tabulated data
+    """
+    df = pd.DataFrame(data, index=[0]).transpose()
+    return tabulate(df, headers=headers, floatfmt=".0f")
 
 
 def main():

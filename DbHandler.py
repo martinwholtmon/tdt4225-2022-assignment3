@@ -72,6 +72,10 @@ class DbHandler:
         collection = self.db[collection_name]
         return list(collection.find({}))
 
+    def get_nr_documents(self, collection_name) -> int:
+        collection = self.db[collection_name]
+        return int(collection.count_documents({}))
+
     def drop_coll(self, collection_name):
         """Remove a collection from the database
 
