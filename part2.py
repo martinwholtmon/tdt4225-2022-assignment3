@@ -1,6 +1,9 @@
+import itertools
+import time
 import pandas as pd
 import pprint as pp
 from tabulate import tabulate
+from haversine import haversine, Unit
 from DbHandler import DbHandler
 
 
@@ -143,12 +146,120 @@ def task_6(db: DbHandler):
 
 def task_7(db: DbHandler):
     """Find the total distance (in km) walked in 2008, by user with id=112."""
-    return NotImplementedError
+    # Get year with most activities
+    pipeline = []
+
+    # get year
+    pipeline.append(
+        {
+            "$addFields": {
+                "year": {"$year": "$start_date_time"},
+            }
+        }
+    )
+
+    # Match
+    pipeline.append(
+        {
+            "$match": {
+                "user_id": "112",
+                "transportation_mode": "walk",
+                "year": 2008,
+            }
+        }
+    )
+
+    # Get lat/lon for each activity
+    pipeline.append(
+        {
+            "$lookup": {
+                "from": "TrackPoint",
+                "localField": "_id",
+                "foreignField": "activity_id",
+                "pipeline": [
+                    {
+                        "$project": {
+                            "_id": 0,
+                            "lat": 1,
+                            "lon": 1,
+                        }
+                    },
+                ],
+                "as": "trackpoints",
+            }
+        }
+    )
+
+    # project
+    pipeline.append({"$project": {"trackpoints": 1}})
+
+    # Query
+    ret = db.aggregate("Activity", pipeline)
+
+    # Calculate
+    distance = 0.0
+    for activity in ret:
+        old_tp = None
+        for tp in activity["trackpoints"]:
+            # Calculate the distance between the trackpoints (coordinates)
+            # And add it to the total distance
+            if old_tp is not None:
+                # Prepare coordinates
+                old_tp_lat = float(old_tp["lat"])
+                old_tp_lon = float(old_tp["lon"])
+                tp_lat = float(tp["lat"])
+                tp_lon = float(tp["lon"])
+
+                distance += haversine(
+                    (old_tp_lat, old_tp_lon),
+                    (tp_lat, tp_lon),
+                    unit=Unit.KILOMETERS,
+                )
+            old_tp = tp
+
+    # Print
+    print("\nTask 7")
+    print(f"User 112 walked {round(distance, 3)} km in 2008")
 
 
 def task_8(db: DbHandler):
     """Find the top 20 users who have gained the most altitude meters"""
-    return NotImplementedError
+    fields = {"_id": 0, "user_id": 1, "activity_id": 1, "altitude": 1}
+    ret = db.find_documents("TrackPoint", {}, fields)
+
+    # Calculate
+    altitude = {}
+    current_aid = -1
+    old_alt = -1
+    for tp in ret:
+        uid = tp["user_id"]
+        aid = tp["activity_id"]
+        alt = tp["altitude"]
+
+        # Same activity
+        if aid == current_aid:
+            # Not invalid + new alt is higher
+            if old_alt < alt and alt != -777 and old_alt != -777:
+                diff = alt - old_alt
+                # add altitude
+                altitude[uid] = (
+                    altitude[uid] + diff if altitude.get(uid) is not None else diff
+                )
+        else:
+            # New activity
+            current_aid = aid
+        old_alt = alt
+
+    # Sort dict
+    # source: https://stackoverflow.com/a/2258273
+    altitude = dict(sorted(altitude.items(), key=lambda x: x[1], reverse=True))
+    top_users = dict(itertools.islice(altitude.items(), 20))
+
+    # Print
+    print("\nTask 8")
+    print(
+        f"The 20 users who gained the most altitude meters is: \n{tabulate_dict(top_users, ['User', 'Gained Altitude (m)'])}"
+    )
 
 
 def task_9(db: DbHandler):
@@ -189,6 +300,7 @@ def main():
     db = None
     try:
         db = DbHandler()
+        start = time.time()
 
         # Execute the tasks:
         # task_1(db)
@@ -197,11 +309,14 @@ def main():
         # task_4(db)
         # task_5(db)
         # task_6(db)
-        task_7(db)
-        task_8(db)
+        # task_7(db)
+        # task_8(db)
         task_9(db)
         task_10(db)
         task_11(db)
+
+        end = time.time()
+        print(f"Time used: {end - start}")
 
     except Exception as e:
         print("ERROR: Failed to use database:", e)
