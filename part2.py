@@ -56,7 +56,7 @@ def task_4(db: DbHandler):
     collection = "User"
     query = {"activities.transportation_mode": "taxi"}
     fields = {"_id": 1}
-    ret = db.find_documents(collection, query, fields)
+    ret = db.find_documents(collection_name=collection, query=query, fields=fields)
 
     # Print
     print("\nTask 4")
@@ -204,15 +204,9 @@ def task_7(db: DbHandler):
             # Calculate the distance between the trackpoints (coordinates)
             # And add it to the total distance
             if old_tp is not None:
-                # Prepare coordinates
-                old_tp_lat = float(old_tp["lat"])
-                old_tp_lon = float(old_tp["lon"])
-                tp_lat = float(tp["lat"])
-                tp_lon = float(tp["lon"])
-
                 distance += haversine(
-                    (old_tp_lat, old_tp_lon),
-                    (tp_lat, tp_lon),
+                    (old_tp["lat"], old_tp["lon"]),
+                    (tp["lat"], tp["lon"]),
                     unit=Unit.KILOMETERS,
                 )
             old_tp = tp
@@ -225,7 +219,7 @@ def task_7(db: DbHandler):
 def task_8(db: DbHandler):
     """Find the top 20 users who have gained the most altitude meters"""
     fields = {"_id": 0, "user_id": 1, "activity_id": 1, "altitude": 1}
-    ret = db.find_documents("TrackPoint", {}, fields)
+    ret = db.find_documents(collection_name="TrackPoint", fields=fields)
 
     # Calculate
     altitude = {}

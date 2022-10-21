@@ -84,7 +84,7 @@ class DbHandler:
         collection = self.db[collection_name]
         return int(collection.count_documents({}))
 
-    def find_documents(self, collection_name, query, fields={}):
+    def find_documents(self, collection_name, query={}, fields={}):
         """find documents in a given collection provided queries.
         You can spesificy which fields you would like in return as well.
 
