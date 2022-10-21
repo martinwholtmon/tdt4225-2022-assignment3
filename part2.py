@@ -321,7 +321,78 @@ def task_10(db: DbHandler):
 
 def task_11(db: DbHandler):
     """Find all users who have registered transportation_mode and their most used transportation_mode."""
-    return NotImplementedError
+    pipeline = []
+
+    # Get users with labels and undwind the activities
+    pipeline.append({"$match": {"has_label": True}})
+    pipeline.append({"$unwind": "$activities"})
+
+    # Remove null values
+    pipeline.append(
+        {"$match": {"activities.transportation_mode": {"$exists": True, "$ne": None}}}
+    )
+
+    # only keep user_id and transportation mode
+    pipeline.append({"$project": {"_id": 1, "activities.transportation_mode": 1}})
+
+    # group on user_id and transportation mode, and count instances
+    pipeline.append(
+        {
+            "$group": {
+                "_id": {
+                    "user_id": "$_id",
+                    "transportation_mode": "$activities.transportation_mode",
+                },
+                "count": {"$sum": 1},
+            }
+        }
+    )
+
+    # Sort
+    pipeline.append({"$sort": {"_id.user_id": 1, "count": -1}})
+
+    # Group results per user
+    pipeline.append(
+        {
+            "$group": {
+                "_id": "$_id.user_id",
+                "transportation": {
+                    "$push": {
+                        "transportation_mode": "$_id.transportation_mode",
+                        "count": "$count",
+                    }
+                },
+            }
+        }
+    )
+
+    # Get top element in each group (most used activity)
+    pipeline.append(
+        {
+            "$project": {
+                "transportation": {"$first": "$transportation"},
+            }
+        }
+    )
+
+    # only get transportation mode
+    pipeline.append(
+        {
+            "$project": {
+                "transportation": "$transportation.transportation_mode",
+            }
+        }
+    )
+
+    # sort by user
+    pipeline.append({"$sort": {"_id": 1}})
+
+    # Query
+    res = db.aggregate("User", pipeline)
+
+    # Print
+    print("\nTask 11")
+    pp.pprint(list(res))
 
 
 def tabulate_dict(data, headers) -> str:
@@ -354,7 +425,7 @@ def main():
         # task_7(db)
         # task_8(db)
         # task_9(db)
-        task_10(db)
+        # task_10(db)
         task_11(db)
 
         end = time.time()
