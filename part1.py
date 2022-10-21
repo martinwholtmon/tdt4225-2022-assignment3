@@ -86,10 +86,10 @@ def insert_trajectory(db: DbHandler, user_id, root, file, has_labels, labels):
     # Prepare Trackpoints
     trackpoints = []
     for trackpoint in data:
-        lat = trackpoint[0]
-        lon = trackpoint[1]
+        lat = float(trackpoint[0])
+        lon = float(trackpoint[1])
         altitude = int(round(float(trackpoint[3])))
-        date_days = trackpoint[4]
+        date_days = float(trackpoint[4])
         date_time = get_datetime_format(trackpoint[5], trackpoint[6])
 
         # Append trackpoint
