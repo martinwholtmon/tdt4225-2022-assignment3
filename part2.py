@@ -261,14 +261,62 @@ def task_9(db: DbHandler):
     An invalid activity is defined as an activity with consecutive
     trackpoints where the timestamps deviate with at least 5 minutes.
     """
-    return NotImplementedError
+    fields = {"_id": 0, "user_id": 1, "activity_id": 1, "date_time": 1}
+    ret = db.find_documents(collection_name="TrackPoint", fields=fields)
+
+    # Find users
+    users = {}
+    curr_aid = -1
+    old_dt = None
+    for tp in ret:
+        uid, aid, dt = tp["user_id"], tp["activity_id"], tp["date_time"]
+        # If same activity
+        if aid == curr_aid:
+            # Calulate the time between the trackpoints in minutes
+            diff = divmod((dt - old_dt).total_seconds(), 60)[0]
+            if diff >= 5:
+                users[uid] = users[uid] + 1 if users.get(uid) is not None else 1
+        else:
+            curr_aid = aid
+        old_dt = dt
+
+    # Print
+    print("\nTask 9")
+    print(
+        f"Users with invalid activities: \n{tabulate_dict(users, ['User', 'Invalid Activities'])}"
+    )
 
 
 def task_10(db: DbHandler):
     """Find the users who have tracked an activity in the Forbidden City of Beijing.
     the Forbidden City: lat 39.916, lon 116.397
     """
-    return NotImplementedError
+    pipeline = []
+
+    # Round lat/lon
+    pipeline.append(
+        {
+            "$project": {
+                "user_id": 1,
+                "lat": {"$round": ["$lat", 3]},
+                "lon": {"$round": ["$lon", 3]},
+            }
+        }
+    )
+
+    # match
+    pipeline.append({"$match": {"lat": 39.916, "lon": 116.397}})
+
+    # Group by user
+    pipeline.append({"$group": {"_id": "$user_id"}})  # Group by user
+
+    # Query
+    res = db.aggregate("TrackPoint", pipeline)
+
+    # Print
+    print("\nTask 10")
+    print(f"Users that have visited 'the Forbidden City': \n")
+    pp.pprint(list(res))
 
 
 def task_11(db: DbHandler):
@@ -305,7 +353,7 @@ def main():
         # task_6(db)
         # task_7(db)
         # task_8(db)
-        task_9(db)
+        # task_9(db)
         task_10(db)
         task_11(db)
 
