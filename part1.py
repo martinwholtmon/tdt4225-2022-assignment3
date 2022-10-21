@@ -52,7 +52,7 @@ def parse_and_insert_dataset(db: DbHandler, stop_at_user=""):
             for file in files:
                 activity_with_transportation_mode = insert_trajectory(
                     db,
-                    user,
+                    user_objectid,
                     root,
                     file,
                     has_labels,
@@ -66,7 +66,7 @@ def parse_and_insert_dataset(db: DbHandler, stop_at_user=""):
             db.update_document("User", user_objectid, data_to_update)
 
 
-def insert_trajectory(db: DbHandler, user, root, file, has_labels, labels):
+def insert_trajectory(db: DbHandler, user_id, root, file, has_labels, labels):
     path = os.path.join(root, file)
     data = read_data_file(path)[6:]
 
@@ -76,7 +76,7 @@ def insert_trajectory(db: DbHandler, user, root, file, has_labels, labels):
 
     # Insert Activity
     activity_id, transportation_mode = insert_activity(
-        db, user, file, data, has_labels, labels
+        db, user_id, file, data, has_labels, labels
     )
     if len(activity_id) == 0:
         raise ValueError(f"Activity {path} was not inserted!")
@@ -94,7 +94,9 @@ def insert_trajectory(db: DbHandler, user, root, file, has_labels, labels):
 
         # Append trackpoint
         trackpoints.append(
-            TrackPoint(activity_id, lat, lon, altitude, date_days, date_time).__dict__
+            TrackPoint(
+                user_id, activity_id, lat, lon, altitude, date_days, date_time
+            ).__dict__
         )
 
     # Insert Trackpoints
@@ -104,7 +106,7 @@ def insert_trajectory(db: DbHandler, user, root, file, has_labels, labels):
     return {"_id": activity_id, "transportation_mode": transportation_mode}
 
 
-def insert_activity(db: DbHandler, user, file, data, has_labels, labels):
+def insert_activity(db: DbHandler, user_id, file, data, has_labels, labels):
     # Prepare activity
     start_date_time = get_datetime_format(data[0][5], data[0][6])
     end_date_time = get_datetime_format(data[-1][5], data[-1][6])
@@ -120,7 +122,7 @@ def insert_activity(db: DbHandler, user, file, data, has_labels, labels):
                 transportation_mode = activity[4]
 
     # Insert
-    activity = Activity(user, transportation_mode, start_date_time, end_date_time)
+    activity = Activity(user_id, transportation_mode, start_date_time, end_date_time)
 
     ids = db.insert_documents("Activity", [activity.__dict__])
     return ids, transportation_mode

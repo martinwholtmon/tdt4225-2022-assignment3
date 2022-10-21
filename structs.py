@@ -8,7 +8,8 @@ class TrackPoint:
     """A trackpoint in the database for an activity"""
 
     # _id: int
-    activity_id: int  # Referencing parent
+    user_id: int  # Referencing the user
+    activity_id: int  # Referencing parent activity
     lat: float
     lon: float
     altitude: int
