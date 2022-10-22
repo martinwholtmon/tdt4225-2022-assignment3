@@ -1,7 +1,13 @@
+"""This file solves the part 1 of assignment 3:
+Cleaning and inserting of the dataset into a mongodb database
+
+Raises:
+    ValueError: Activity was not inserted
+"""
 import os
 import time
-from DbHandler import DbHandler
 from datetime import datetime
+from DbHandler import DbHandler
 from FileHandler import read_data_file, read_labeled_users_file, read_user_labels_file
 from structs import User, Activity, TrackPoint
 
@@ -67,6 +73,19 @@ def parse_and_insert_dataset(db: DbHandler, stop_at_user=""):
 
 
 def insert_trajectory(db: DbHandler, user_id, root, file, has_labels, labels):
+    """Insert activities with trackpoint data
+
+    Args:
+        db (DbHandler): The database
+        user_id (str): Id of the user
+        root (str): Path to directory
+        file (str): Name of current file (activity)
+        has_labels (bool): User has labeled activities
+        labels (dict): Labeled activities
+
+    Raises:
+        ValueError: If the insertion of activity failed
+    """
     path = os.path.join(root, file)
     data = read_data_file(path)[6:]
 
@@ -107,6 +126,20 @@ def insert_trajectory(db: DbHandler, user_id, root, file, has_labels, labels):
 
 
 def insert_activity(db: DbHandler, user_id, file, data, has_labels, labels):
+    """Insert an activity into the database
+
+    Args:
+        db (DbHandler): The database
+        user_id (str): The id of the user
+        file (str): Filename of the activity
+        data (list[list]): All the trackpoints for the activity
+        has_labels (bool): User has labeled activities
+        labels (dict): Labeled activities
+
+    Returns:
+        list: ObjectID of inserted data. In this case, only one element
+        str | None: Transportation mode
+    """
     # Prepare activity
     start_date_time = get_datetime_format(data[0][5], data[0][6])
     end_date_time = get_datetime_format(data[-1][5], data[-1][6])
@@ -128,7 +161,7 @@ def insert_activity(db: DbHandler, user_id, file, data, has_labels, labels):
     return ids, transportation_mode
 
 
-def get_datetime_format(date, time) -> datetime:
+def get_datetime_format(date, the_time) -> datetime:
     """Convert the date and time to datetime format
 
     Args:
@@ -139,7 +172,7 @@ def get_datetime_format(date, time) -> datetime:
         datetime: the date and time
     """
     return datetime.strptime(
-        str(date).replace("/", "-") + " " + str(time), "%Y-%m-%d %H:%M:%S"
+        str(date).replace("/", "-") + " " + str(the_time), "%Y-%m-%d %H:%M:%S"
     )
 
 

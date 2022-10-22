@@ -26,7 +26,6 @@ class Activity:
     transportation_mode: str
     start_date_time: datetime
     end_date_time: datetime
-    # trackpoints: list  # list with _id of trackpoints
 
 
 @dataclass

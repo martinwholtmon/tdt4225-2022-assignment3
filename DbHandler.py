@@ -1,3 +1,5 @@
+"""The database handler.
+"""
 from DbConnector import DbConnector
 
 
@@ -104,14 +106,18 @@ class DbHandler:
         return collection.find(query, fields)
 
     def aggregate(self, collection_name, pipeline: list):
-        """Perform aggregation, and return computed results. Each stage is provided in the pipeline list
+        """Perform aggregation, and return computed results.
+        Each stage is provided in the pipeline list
 
         Args:
             collection_name (str): Name of the collection
             pipeline (list): Stages in the aggregation
 
         Returns:
-            ~pymongo.command_cursor.CommandCursor: The results of the aggregation. list(ret) to print the results.
+            ~pymongo.command_cursor.CommandCursor:
+                The results of the aggregation.
+                CommandCursor is iterable (for-each loop).
+                list(CommandCursor) to print the results.
         """
         collection = self.db[collection_name]
         return collection.aggregate(pipeline)
@@ -127,9 +133,9 @@ class DbHandler:
 
     def drop_all_coll(self):
         """Remove all collections in the db"""
-        coll = self.db.list_collection_names()
-        for c in coll:
-            self.db.drop_collection(c)
+        collections = self.db.list_collection_names()
+        for collection in collections:
+            self.db.drop_collection(collection)
 
     def get_coll(self) -> list:
         """Returns all the collections

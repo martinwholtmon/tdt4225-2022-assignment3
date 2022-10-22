@@ -44,6 +44,7 @@ def task_3(db: DbHandler):
 
     # Print
     print("\nTask 3")
+    print("Top 20 users with the highest number of activities: ")
     pp.pprint(list(ret))
 
 
@@ -56,6 +57,7 @@ def task_4(db: DbHandler):
 
     # Print
     print("\nTask 4")
+    print("All users who have taken a taxi:")
     pp.pprint(list(ret))
 
 
@@ -76,6 +78,7 @@ def task_5(db: DbHandler):
 
     # Print
     print("\nTask 5")
+    print("Number of activities for the different transportation modes")
     pp.pprint(list(ret))
 
 
@@ -309,7 +312,7 @@ def task_10(db: DbHandler):
 
     # Print
     print("\nTask 10")
-    print(f"Users that have visited 'the Forbidden City': \n")
+    print(f"Users that have visited 'the Forbidden City':")
     pp.pprint(list(res))
 
 
@@ -386,6 +389,9 @@ def task_11(db: DbHandler):
 
     # Print
     print("\nTask 11")
+    print(
+        "All users who have registered transportation_mode and their most used transportation_mode:"
+    )
     pp.pprint(list(res))
 
 

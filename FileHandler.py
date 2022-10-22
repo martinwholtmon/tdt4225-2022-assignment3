@@ -1,3 +1,7 @@
+"""Containing all the methods to read the files in the dataset
+"""
+
+
 def read_labeled_users_file(path) -> list:
     """Will read the labeled_ids.txt that includes all the users that have labels
 
@@ -17,9 +21,7 @@ def read_user_labels_file(path) -> dict:
     """Read the labels provided in the users directory
     Returns it as a list with a key matching the datapoint filename.
     E.g.: {
-        "20070626113229": {
-            "data": ["2007/06/26", "11:32:29", "2007/06/26", "11:40:29" ,"bus"]
-        },
+        "20070626113229": ["2007/06/26", "11:32:29", "2007/06/26", "11:40:29" ,"bus"],
         ...
     }
 
@@ -31,9 +33,10 @@ def read_user_labels_file(path) -> dict:
     """
     data = read_data_file(path)[1:]  # skip header
     labels = {}
-    for d in data:
-        key = str(d[0]).replace("/", "") + str(d[1]).replace(":", "")
-        labels[key] = d
+    for activity in data:
+        # Create key as filename, e.g.: 20070626113229
+        key = str(activity[0]).replace("/", "") + str(activity[1]).replace(":", "")
+        labels[key] = activity
     return labels
 
 
