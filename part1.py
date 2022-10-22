@@ -24,26 +24,22 @@ def parse_and_insert_dataset(db: DbHandler, stop_at_user=""):
     labeled_ids = read_labeled_users_file(
         os.path.join(path_to_dataset, "labeled_ids.txt")
     )
-    user = ""
-    labels = {}
-    has_labels = False
+
+    # Iterate over the dataset
     for root, dirs, files in os.walk(os.path.join(path_to_dataset, "Data")):
-        # New user?
-        # Directory has a "Trajectory" folder,
-        # meaning we are in a new users directory
+        # New user
         if len(dirs) > 0 and dirs[0] == "Trajectory":
-            user = os.path.normpath(root).split(os.path.sep)[-1]
+            user, labels = get_new_user(root, labeled_ids, files)
 
             # Partial insert, 0..stop_at_user-1
             if user == stop_at_user:
                 return
 
-            # Get labels
-            if user in labeled_ids and files[0] == "labels.txt":
-                labels = read_user_labels_file(os.path.join(root, files[0]))
-                has_labels = True
-            else:
+            # See if it has labels
+            if labels is None:
                 has_labels = False
+            else:
+                has_labels = True
 
             # insert user into db
             print(f"Inserting user {user}")
@@ -51,8 +47,7 @@ def parse_and_insert_dataset(db: DbHandler, stop_at_user=""):
                 "User", [User(user, has_labels, []).__dict__]
             )[0]
 
-        # Insert activities with Trajectory data
-        # In "Trajectory" directory
+        # Insert activities with Trajectory data for the user
         if os.path.normpath(root).split(os.path.sep)[-1] == "Trajectory":
             activities = []
             for file in files:
@@ -61,7 +56,6 @@ def parse_and_insert_dataset(db: DbHandler, stop_at_user=""):
                     user_objectid,
                     root,
                     file,
-                    has_labels,
                     labels,
                 )
                 if activity_with_transportation_mode is not None:
@@ -72,7 +66,29 @@ def parse_and_insert_dataset(db: DbHandler, stop_at_user=""):
             db.update_document("User", user_objectid, data_to_update)
 
 
-def insert_trajectory(db: DbHandler, user_id, root, file, has_labels, labels):
+def get_new_user(root, labeled_ids, files):
+    """Find the new user_id, and their labeled activities if there is any.
+
+    Args:
+        root (str): path to users directory
+        labeled_ids (list): all users that have labeled their activities
+        files (list[str]): all the files in current directory
+
+    Returns:
+        str: id of the user
+        dict | None: labeled activities
+    """
+    # Find user
+    user = os.path.normpath(root).split(os.path.sep)[-1]
+
+    # Get labels
+    labels = None
+    if user in labeled_ids and files[0] == "labels.txt":
+        labels = read_user_labels_file(os.path.join(root, files[0]))
+    return user, labels
+
+
+def insert_trajectory(db: DbHandler, user_id, root, file, labels):
     """Insert activities with trackpoint data
 
     Args:
@@ -80,11 +96,13 @@ def insert_trajectory(db: DbHandler, user_id, root, file, has_labels, labels):
         user_id (str): Id of the user
         root (str): Path to directory
         file (str): Name of current file (activity)
-        has_labels (bool): User has labeled activities
         labels (dict): Labeled activities
 
     Raises:
         ValueError: If the insertion of activity failed
+
+    Returns:
+        dict: id of activity with transportation mode
     """
     path = os.path.join(root, file)
     data = read_data_file(path)[6:]
@@ -94,9 +112,7 @@ def insert_trajectory(db: DbHandler, user_id, root, file, has_labels, labels):
         return None
 
     # Insert Activity
-    activity_id, transportation_mode = insert_activity(
-        db, user_id, file, data, has_labels, labels
-    )
+    activity_id, transportation_mode = insert_activity(db, user_id, file, data, labels)
     if len(activity_id) == 0:
         raise ValueError(f"Activity {path} was not inserted!")
     else:
@@ -125,7 +141,7 @@ def insert_trajectory(db: DbHandler, user_id, root, file, has_labels, labels):
     return {"_id": activity_id, "transportation_mode": transportation_mode}
 
 
-def insert_activity(db: DbHandler, user_id, file, data, has_labels, labels):
+def insert_activity(db: DbHandler, user_id, file, data, labels):
     """Insert an activity into the database
 
     Args:
@@ -133,7 +149,6 @@ def insert_activity(db: DbHandler, user_id, file, data, has_labels, labels):
         user_id (str): The id of the user
         file (str): Filename of the activity
         data (list[list]): All the trackpoints for the activity
-        has_labels (bool): User has labeled activities
         labels (dict): Labeled activities
 
     Returns:
@@ -146,7 +161,7 @@ def insert_activity(db: DbHandler, user_id, file, data, has_labels, labels):
 
     # Match Transportation mode
     transportation_mode = None
-    if has_labels:
+    if labels is not None:
         # Get activity from dict
         activity = labels.get(os.path.splitext(file)[0])  # Match start time on filename
         if activity is not None:

@@ -198,17 +198,17 @@ def task_7(db: DbHandler):
     # Calculate
     distance = 0.0
     for activity in ret:
-        old_tp = None
-        for tp in activity["trackpoints"]:
+        old_track_point = None
+        for track_point in activity["trackpoints"]:
             # Calculate the distance between the trackpoints (coordinates)
             # And add it to the total distance
-            if old_tp is not None:
+            if old_track_point is not None:
                 distance += haversine(
-                    (old_tp["lat"], old_tp["lon"]),
-                    (tp["lat"], tp["lon"]),
+                    (old_track_point["lat"], old_track_point["lon"]),
+                    (track_point["lat"], track_point["lon"]),
                     unit=Unit.KILOMETERS,
                 )
-            old_tp = tp
+            old_track_point = track_point
 
     # Print
     print("\nTask 7")
@@ -312,7 +312,7 @@ def task_10(db: DbHandler):
 
     # Print
     print("\nTask 10")
-    print(f"Users that have visited 'the Forbidden City':")
+    print("Users that have visited 'the Forbidden City':")
     pp.pprint(list(res))
 
 
