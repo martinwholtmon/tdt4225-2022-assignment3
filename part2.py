@@ -36,12 +36,8 @@ def task_3(db: DbHandler):
 
     # Get user with nr_activities
     pipeline.append({"$project": {"_id": 1, "nr_activities": {"$size": "$activities"}}})
-
-    # Sort
     pipeline.append({"$sort": {"nr_activities": -1}})
-
-    # Get top 20
-    pipeline.append({"$limit": 20})
+    pipeline.append({"$limit": 20})  # Get top 20
 
     # Query
     ret = db.aggregate("User", pipeline)
@@ -94,7 +90,7 @@ def task_6(db: DbHandler):
     # Convert start_date_time to year
     pipeline.append({"$project": {"_id": 1, "year": {"$year": "$start_date_time"}}})
     pipeline.append({"$group": {"_id": "$year", "count": {"$sum": 1}}})  # Group by year
-    pipeline.append({"$sort": {"count": -1}})  # Sort
+    pipeline.append({"$sort": {"count": -1}})
     pipeline.append({"$limit": 1})  # Get top 1
 
     # Query
@@ -190,7 +186,7 @@ def task_7(db: DbHandler):
         }
     )
 
-    # project
+    # only keep trackpoints
     pipeline.append({"$project": {"trackpoints": 1}})
 
     # Query
@@ -293,7 +289,7 @@ def task_10(db: DbHandler):
     """
     pipeline = []
 
-    # Round lat/lon
+    # Round lat/lon values
     pipeline.append(
         {
             "$project": {
@@ -304,11 +300,9 @@ def task_10(db: DbHandler):
         }
     )
 
-    # match
+    # match on the forbidden city
     pipeline.append({"$match": {"lat": 39.916, "lon": 116.397}})
-
-    # Group by user
-    pipeline.append({"$group": {"_id": "$user_id"}})  # Group by user
+    pipeline.append({"$group": {"_id": "$user_id"}})  # find users
 
     # Query
     res = db.aggregate("TrackPoint", pipeline)
@@ -366,7 +360,7 @@ def task_11(db: DbHandler):
         }
     )
 
-    # Get top element in each group (most used activity)
+    # Get top element in each group (most used activity) per user_id
     pipeline.append(
         {
             "$project": {
@@ -375,7 +369,7 @@ def task_11(db: DbHandler):
         }
     )
 
-    # only get transportation mode
+    # only get transportation mode, ignore count
     pipeline.append(
         {
             "$project": {
@@ -384,7 +378,7 @@ def task_11(db: DbHandler):
         }
     )
 
-    # sort by user
+    # sort by user_id
     pipeline.append({"$sort": {"_id": 1}})
 
     # Query
@@ -416,16 +410,16 @@ def main():
         start = time.time()
 
         # Execute the tasks:
-        # task_1(db)
-        # task_2(db)
-        # task_3(db)
-        # task_4(db)
-        # task_5(db)
-        # task_6(db)
-        # task_7(db)
-        # task_8(db)
-        # task_9(db)
-        # task_10(db)
+        task_1(db)
+        task_2(db)
+        task_3(db)
+        task_4(db)
+        task_5(db)
+        task_6(db)
+        task_7(db)
+        task_8(db)
+        task_9(db)
+        task_10(db)
         task_11(db)
 
         end = time.time()
